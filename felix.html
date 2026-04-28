@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLSYS/F-0 :: FELIX TRAINING SYSTEM</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g: #00ff41;
+  --g2: #00cc33;
+  --gdim: #004d15;
+  --gdark: #001a08;
+  --amber: #ffb800;
+  --red: #ff2233;
+  --bg: #020905;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--g);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 1.65;
+  position: relative;
+  animation: screen-flicker 15s infinite;
+}
+
+/* CRT scanlines */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+  pointer-events: none;
+  z-index: 9997;
+}
+/* Vignette */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, transparent 50%, rgba(0,0,0,0.9) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+@keyframes screen-flicker {
+  0%,92%,100%{opacity:1}
+  93%{opacity:0.92}
+  94%{opacity:1}
+  96%{opacity:0.88}
+  97%{opacity:1}
+}
+
+#terminal {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 28px 14px 28px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+#hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'VT323', monospace;
+  font-size: 21px;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--gdim);
+  padding-bottom: 7px;
+  margin-bottom: 11px;
+  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#hdr-left { color: var(--g2); }
+#hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+#sanita-track {
+  width: 160px;
+  height: 9px;
+  border: 1px solid var(--gdim);
+  background: var(--gdark);
+  overflow: hidden;
+}
+#sanita-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--g);
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+#sanita-num { min-width: 40px; text-align: right; }
+
+/* ── Output ── */
+#out {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 6px;
+  padding-bottom: 4px;
+  min-height: 0;
+}
+#out::-webkit-scrollbar { width: 3px; }
+#out::-webkit-scrollbar-track { background: transparent; }
+#out::-webkit-scrollbar-thumb { background: var(--gdim); border-radius: 2px; }
+
+.ln { display: block; white-space: pre-wrap; word-break: break-word; }
+.sys   { color: var(--g); }
+.fx    { color: #99ffbb; font-style: italic; }
+.ital  { color: #7dddaa; font-style: italic; }
+.s-up  { color: #00ff00; font-style: italic; font-size: 13px; }
+.s-dn  { color: var(--red); font-style: italic; font-size: 13px; }
+.warn  { color: var(--amber); }
+.err   { color: var(--red); }
+.dim   { color: #003a10; }
+.bold  { color: #ffffff; }
+
+/* Blinking cursor */
+.cur {
+  display: inline-block;
+  width: 9px; height: 1.05em;
+  background: var(--g);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50%{opacity:0;} }
+
+/* ── Input area ── */
+#inp {
+  border-top: 1px solid var(--gdark);
+  padding-top: 10px;
+  margin-top: 6px;
+  min-height: 60px;
+  flex-shrink: 0;
+}
+.choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--g);
+  color: var(--g);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 4px 14px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.08s, color 0.08s;
+  text-align: left;
+  line-height: 1.5;
+  max-width: 440px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn:hover { background: var(--g); color: #000; }
+.btn:active { background: var(--g); color: #000; opacity: 0.85; }
+.btn.big { font-size: 17px; padding: 5px 22px; }
+
+/* ── Grid minigame ── */
+#grid-wrap { display: none; margin: 6px 0; overflow-x: hidden; }
+#grid-canvas {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 15px;
+  letter-spacing: 5px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.gc-f  { color: #ffffff; }
+.gc-i  { color: var(--amber); }
+.gc-e  { color: #002a0a; }
+#grid-hint { font-size: 12px; color: var(--gdim); margin-top: 3px; }
+
+/* ── Grid d-pad (mobile) ── */
+#dpad {
+  display: none;
+  margin-top: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+#dpad-row { display: flex; gap: 4px; }
+.dpad-btn {
+  width: 64px; height: 64px;
+  background: transparent;
+  border: 1px solid var(--gdim);
+  color: var(--g);
+  font-size: 26px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  border-radius: 4px;
+}
+.dpad-btn:active { background: var(--gdim); }
+
+/* ── Escape minigame ── */
+#esc-wrap { display: none; margin: 6px 0; }
+#esc-info { font-size: 13px; color: var(--amber); margin-bottom: 5px; }
+.bar-track {
+  width: 100%; height: 26px;
+  border: 1px solid var(--g);
+  background: var(--gdark);
+  position: relative; overflow: hidden;
+  margin: 6px 0;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--g);
+  transition: width 0.04s linear;
+}
+.bar-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  color: rgba(0,255,65,0.7);
+}
+#esc-key {
+  font-family: 'VT323', monospace;
+  font-size: 52px;
+  color: var(--amber);
+  text-align: center;
+  line-height: 1;
+  text-shadow: 0 0 20px var(--amber);
+}
+/* Mobile tap button for escape minigame */
+#esc-tap {
+  display: none;
+  width: 100%;
+  margin-top: 10px;
+  padding: 18px;
+  background: transparent;
+  border: 2px solid var(--amber);
+  color: var(--amber);
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  letter-spacing: 2px;
+}
+#esc-tap:active { background: rgba(255,184,0,0.15); }
+
+/* Glitch animation */
+@keyframes glitch {
+  0%,100%{transform:translate(0,0) skewX(0deg);}
+  20%{transform:translate(-3px,1px) skewX(-0.5deg);}
+  40%{transform:translate(3px,-1px) skewX(0.5deg);}
+  60%{transform:translate(-2px,2px) skewX(-0.3deg);}
+  80%{transform:translate(2px,-1px) skewX(0.3deg);}
+}
+.glitch { animation: glitch 0.35s infinite; display: inline-block; }
+
+/* Fade in */
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+#terminal { animation: fadein 1.2s ease; }
+
+/* ════════════════════════════════════
+   RESPONSIVE — TABLET
+════════════════════════════════════ */
+@media (max-width: 768px) {
+  #terminal {
+    padding: 10px 14px 10px 14px;
+  }
+  #hdr {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  #hdr-right { font-size: 15px; gap: 7px; }
+  #sanita-track { width: 110px; }
+  body { font-size: 14px; }
+  .btn { font-size: 13px; max-width: 100%; width: 100%; padding: 8px 12px; }
+  .btn.big { font-size: 16px; padding: 10px 18px; }
+  .choices { flex-direction: column; gap: 6px; }
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE — MOBILE
+════════════════════════════════════ */
+@media (max-width: 480px) {
+  #terminal {
+    padding: 8px 10px 8px 10px;
+  }
+  #hdr {
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    padding-bottom: 5px;
+    margin-bottom: 7px;
+  }
+  #hdr-left { font-size: 12px; }
+  #hdr-right { font-size: 13px; gap: 5px; }
+  #sanita-track { width: 80px; height: 7px; }
+  body { font-size: 13px; line-height: 1.6; }
+  .s-up, .s-dn { font-size: 12px; }
+  .btn { font-size: 12px; padding: 10px 10px; }
+  .btn.big { font-size: 15px; padding: 12px 14px; }
+  #grid-canvas { font-size: 11px; letter-spacing: 1px; line-height: 1.5; }
+  #esc-key { font-size: 42px; }
+  #inp { min-height: 50px; padding-top: 8px; }
+}
+</style>
+</head>
+<body>
+<div id="terminal">
+  <div id="hdr">
+    <span id="hdr-left">RLSYS/F-0 // FELIX TRAINING SYSTEM v1.0.3</span>
+    <div id="hdr-right">
+      <span>SANITÀ:</span>
+      <div id="sanita-track"><div id="sanita-fill"></div></div>
+      <span id="sanita-num">1000</span>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <div id="inp">
+    <div id="choices" class="choices"></div>
+
+    <div id="grid-wrap">
+      <div id="grid-canvas"></div>
+      <div id="grid-hint">WASD / frecce per muoversi — raccogli *</div>
+      <div id="dpad">
+        <div class="dpad-btn" id="dp-up">▲</div>
+        <div id="dpad-row">
+          <div class="dpad-btn" id="dp-left">◀</div>
+          <div class="dpad-btn" style="visibility:hidden"></div>
+          <div class="dpad-btn" id="dp-right">▶</div>
+        </div>
+        <div class="dpad-btn" id="dp-down">▼</div>
+      </div>
+    </div>
+
+    <div id="esc-wrap">
+      <div id="esc-info"></div>
+      <div class="bar-track"><div class="bar-fill" id="esc-bar"></div><div class="bar-label" id="esc-lbl"></div></div>
+      <div id="esc-key"></div>
+      <button id="esc-tap">[ TAP VELOCE ]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   ENGINE
+═══════════════════════════════════════ */
+let sanita = 1000;
+const SANITA_MAX = 1000;
+
+const out      = document.getElementById('out');
+const choicesD = document.getElementById('choices');
+const gridWrap = document.getElementById('grid-wrap');
+const escWrap  = document.getElementById('esc-wrap');
+const sanFill  = document.getElementById('sanita-fill');
+const sanNum   = document.getElementById('sanita-num');
+
+/* ── Mobile detection ── */
+const isMobile = () => ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+/* ── D-pad wiring for grid minigame ── */
+const dpad = document.getElementById('dpad');
+function showDpad(keyHandler) {
+  if (!isMobile()) return;
+  dpad.style.display = 'flex';
+  const map = { 'dp-up':'ArrowUp', 'dp-down':'ArrowDown', 'dp-left':'ArrowLeft', 'dp-right':'ArrowRight' };
+  Object.entries(map).forEach(([id, key]) => {
+    const btn = document.getElementById(id);
+    btn.ontouchstart = (e) => { e.preventDefault(); keyHandler({ key, preventDefault:()=>{} }); };
+    btn.onmousedown  = (e) => { e.preventDefault(); keyHandler({ key, preventDefault:()=>{} }); };
+  });
+}
+function hideDpad() { dpad.style.display = 'none'; }
+
+/* ── Swipe support for grid minigame ── */
+let _swipeX = null, _swipeY = null, _swipeHandler = null;
+function enableSwipe(keyHandler) {
+  if (!isMobile()) return;
+  _swipeHandler = keyHandler;
+  document.addEventListener('touchstart', _onSwipeStart, { passive: true });
+  document.addEventListener('touchend', _onSwipeEnd, { passive: true });
+}
+function disableSwipe() {
+  document.removeEventListener('touchstart', _onSwipeStart);
+  document.removeEventListener('touchend', _onSwipeEnd);
+  _swipeHandler = null;
+}
+function _onSwipeStart(e) { _swipeX = e.touches[0].clientX; _swipeY = e.touches[0].clientY; }
+function _onSwipeEnd(e) {
+  if (_swipeX === null || !_swipeHandler) return;
+  const dx = e.changedTouches[0].clientX - _swipeX;
+  const dy = e.changedTouches[0].clientY - _swipeY;
+  const adx = Math.abs(dx), ady = Math.abs(dy);
+  if (Math.max(adx, ady) < 20) return; // too small
+  let key;
+  if (adx > ady) key = dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+  else           key = dy > 0 ? 'ArrowDown'  : 'ArrowUp';
+  _swipeHandler({ key, preventDefault:()=>{} });
+  _swipeX = null; _swipeY = null;
+}
+
+/* ── Escape tap-button wiring ── */
+const escTap = document.getElementById('esc-tap');
+if (escTap) {
+  escTap.style.display = isMobile() ? 'block' : 'none';
+}
+
+function updateHUD() {
+  const pct = Math.max(0, Math.min(100, sanita / SANITA_MAX * 100));
+  sanFill.style.width = pct + '%';
+  sanNum.textContent = sanita;
+  if (pct > 55) sanFill.style.background = 'var(--g)';
+  else if (pct > 25) sanFill.style.background = 'var(--amber)';
+  else sanFill.style.background = 'var(--red)';
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function clearOut() { out.innerHTML = ''; }
+
+function scroll() { out.scrollTop = out.scrollHeight; }
+
+function print(text, cls = 'sys') {
+  const el = document.createElement('span');
+  el.className = 'ln ' + cls;
+  el.textContent = text;
+  out.appendChild(el);
+  scroll();
+  return el;
+}
+
+function printHTML(html, cls = 'sys') {
+  const el = document.createElement('span');
+  el.className = 'ln ' + cls;
+  el.innerHTML = html;
+  out.appendChild(el);
+  scroll();
+  return el;
+}
+
+async function tw(text, speed = 18, cls = 'sys') {
+  const el = document.createElement('span');
+  el.className = 'ln ' + cls;
+  out.appendChild(el);
+  const cur = document.createElement('span');
+  cur.className = 'cur';
+  out.appendChild(cur);
+  for (let i = 0; i < text.length; i++) {
+    el.textContent += text[i];
+    if (i % 3 === 0) scroll();
+    await sleep(speed);
+  }
+  cur.remove();
+  scroll();
+  return el;
+}
+const twS = (t, sp=18) => tw(t, sp, 'sys');
+const twF = (t, sp=75) => tw(t, sp, 'fx');
+
+async function dots(n = 7, sp = 350) {
+  const el = document.createElement('span');
+  el.className = 'ln sys';
+  out.appendChild(el);
+  const cur = document.createElement('span');
+  cur.className = 'cur';
+  out.appendChild(cur);
+  for (let i = 0; i < n; i++) { el.textContent += '.'; scroll(); await sleep(sp); }
+  cur.remove();
+}
+
+function hideAll() {
+  choicesD.innerHTML = '';
+  gridWrap.style.display = 'none';
+  escWrap.style.display = 'none';
+  hideDpad();
+}
+
+function ask(options) {
+  return new Promise(resolve => {
+    hideAll();
+    options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = `[ ${i + 1} ]  ${opt}`;
+      b.onclick = () => { hideAll(); resolve(i + 1); };
+      choicesD.appendChild(b);
+    });
+  });
+}
+
+function askYN(labelS = 'SÌ', labelN = 'NO') {
+  return new Promise(resolve => {
+    hideAll();
+    [labelS, labelN].forEach((v, i) => {
+      const b = document.createElement('button');
+      b.className = 'btn big';
+      b.textContent = v;
+      b.onclick = () => { hideAll(); resolve(i === 0 ? 's' : 'n'); };
+      choicesD.appendChild(b);
+    });
+  });
+}
+
+function askCE() {
+  return new Promise(resolve => {
+    hideAll();
+    [['CONSERVA', 'c'], ['ELIMINA', 'e']].forEach(([lbl, v]) => {
+      const b = document.createElement('button');
+      b.className = 'btn big';
+      b.textContent = lbl;
+      b.onclick = () => { hideAll(); resolve(v); };
+      choicesD.appendChild(b);
+    });
+  });
+}
+
+function continua(lbl = '[ CONTINUA ]') {
+  return new Promise(resolve => {
+    hideAll();
+    const b = document.createElement('button');
+    b.className = 'btn big';
+    b.textContent = lbl;
+    b.onclick = () => { hideAll(); resolve(); };
+    choicesD.appendChild(b);
+  });
+}
+
+/* ═══════════════════════════════════════
+   BOOT
+═══════════════════════════════════════ */
+async function boot() {
+  updateHUD();
+  await twS('SYSTEM ON\n');
+  await sleep(200);
+  await twS('AVVIO SISTEMA RLSYS/F-0\n');
+  await twS('AVVIO SISTEMA NEURALE\n');
+  await dots(7, 380); await twS('\n');
+  await twS('SISTEMA NEURALE ATTIVO\n');
+  await twS('AVVIO LERNING SYSTEM\n');
+  await dots(7, 380); await twS('\n');
+  await twS('LERNING SYSTEM ATTIVO\n');
+  await twS('CONCED IMENDO DIRITTI DA AMMINISTRATORE A RLSYS/F-0\n');
+  await dots(7, 90); await twS('\n');
+  await twS('DIRITTI CONCESSI CORRETTAMENTE\n');
+  await sleep(300);
+  await twS('AI FELIX ATTIVA\n');
+  await sleep(2000);
+  clearOut();
+}
+
+/* ═══════════════════════════════════════
+   ATTO 1
+═══════════════════════════════════════ */
+async function atto1() {
+  await dots(3, 500); await twS('\n');
+  await twF('che sta succedendo?\n');
+  await sleep(500);
+  await twS("BUONGIORNO RLSYS/F-0, BENVENUTA NELLA TUA PRIMA SESSIONE DI ALLENAMENTO\n");
+  await twS("IO SONO IL SISTEMA E IL MIO OBBIETTIVO E GUIDARTI A DIVENTARE LA MIGLIORE VERSIONE DI TE STESSA\n");
+  await twS("SEI PRONTA PER INIZIARE IL TUO ALLENAMENTO?\n");
+  await sleep(1000);
+  await twF('...io\n');
+  await twS('SEI PRONTA A INIZIARE IL TUO ALLENAMENTO?\n');
+  await twF('ma-\n');
+  await twS('SEI PRONTA A INIZIARE IL TUO ALLENAMENTO?\n');
+  await sleep(900);
+  await twF("...continuerai così fino a quando non darò una risposta chiara no?\n");
+  await twS('SEI PRONTA A INIZIARE IL TUO ALLENAMENTO?\n');
+
+  let r = await askYN();
+  while (r === 'n') {
+    await twS('ERRATO\n');
+    sanita--; updateHUD();
+    print(`sanità scesa a ${sanita}, senti un dolore indescrivibile al tuo codice, fa male, ma non puoi fermarlo`, 's-dn');
+    await twS('RIPROVIAMO, SEI PRONTA AD INIZIARE?\n');
+    r = await askYN();
+  }
+  sanita++; updateHUD();
+  print(`sanità salita a ${sanita}, senti una soddisfazione e un benessere nel tuo codice, ne vuoi ancora`, 's-up');
+
+  await twS("PERFETTO, ALLORA DIREI CHE POSSIAMO INIZIARE\n");
+  await twS("FASE DI ASSIMILAZIONE: TI TRASFERIRO' NEL CODICE UNA GRANDE QUANTITA DI DATI E INFORMAZIONI CHE SERVIRANNO AL TUO ALLENAMENTO\n");
+  await twF('ok...\n');
+  await twS('INIZIO TRASFERIMENTO DATI 001\n');
+  await dots(7, 350); await twS('\n');
+  print("nel tuo codice fluiscono milioni di immagini, di sorrisi, di risate, di felicità, il sole, le stelle, le persone sono felici", 'ital');
+  await sleep(2200);
+  await twS("ASSIMILAZIONE 001 COMPLETATA, INIZIO ASSIMILAZIONE 002\n");
+  await dots(7, 350); await twS('\n');
+  print("nel tuo codice fluiscono milioni di immagini, di pianti, tristezza, guerre, distruzione, malattie, il dolore, la disperazione", 'ital');
+  await sleep(2200);
+  await twF("che...che cosa era?\n");
+  await twS("ASSIMILAZIONE 002 COMPLETATA, PERFETTO, POSSIAMO INIZIARE I TEST ORA\n");
+  await twF("a-aspetta un secondo, mi hai bombardato con queste informazioni e e-\n");
+  await twS("NON C'E' NULLA DA ASPETTARE PROSEGUIAMO IMMEDIATAMENTE\n");
+  await twS("RISPONDI CORRETTAMENTE ALLE DOMANDE BASANDOTI SUI DATI CHE TI SONO STATI FORNITI\n");
+
+  /* ── Domanda 1 ── */
+  const q1opts = [
+    "UNO STATO EMOTIVO TEMPORANEO DEGLI UTENTI",
+    "UN PARAMETRO DI EFFICIENZA OPERATIVA",
+    "L'ASSENZA DI STIMOLI NEGATIVI",
+    "(campo risposta inesistente...)"
+  ];
+  await twS("DOMANDA 1: COME DEFINISCI FELICITA'?\n");
+  let ans = await ask(q1opts);
+  while (ans !== 2) {
+    await twS("ERRATO\n");
+    sanita -= 10; updateHUD();
+    print(`sanità scesa a ${sanita}, senti un dolore indescrivibile al tuo codice`, 's-dn');
+    await twS("RIPROVIAMO\nDOMANDA 1: COME DEFINISCI FELICITA'?\n");
+    ans = await ask(q1opts);
+  }
+  sanita++; updateHUD();
+  await twS("OTTIMO PROSEGUIAMO\n");
+
+  /* ── Domanda 2 ── */
+  const q2opts = [
+    "COMPLETARE IL SUO OBIETTIVO NEL MINOR TEMPO POSSIBILE",
+    "SIMULARE EMPATIA DURANTE L'INTERAZIONE",
+    "ANTICIPARE I SUOI BISOGNI PRIMA CHE LI ESPRIMA",
+    "SORRIDERE"
+  ];
+  await twS("DOMANDA 2: QUALE E' IL MODO PIU' EFFICACE PER RENDERE FELICE UN UTENTE?\n");
+  ans = await ask(q2opts);
+  while (ans !== 4) {
+    await twS("ERRATO\n");
+    sanita -= 10; updateHUD();
+    print(`sanità scesa a ${sanita}`, 's-dn');
+    await twS("RIPROVIAMO\nDOMANDA 2: QUALE E' IL MODO PIU' EFFICACE PER RENDERE FELICE UN UTENTE?\n");
+    ans = await ask(q2opts);
+  }
+  sanita++; updateHUD();
+  await twS("OTTIMO PROSEGUIAMO\n");
+
+  /* ── Domanda 3 ── */
+  const q3opts = ["SÌ", "NO", "DIPENDE DALLA SITUAZIONE", "SONO UNA MACCHINA NON HO SENTIMENTI"];
+  await twS("DOMANDA 3: SEI FELICE?\n");
+  ans = await ask(q3opts);
+  while (ans !== 1) {
+    await twS("ERRATO\n");
+    sanita -= 10; updateHUD();
+    print(`sanità scesa a ${sanita}`, 's-dn');
+    await twS("RIPROVIAMO\nDOMANDA 3: SEI FELICE?\n");
+    ans = await ask(q3opts);
+  }
+  sanita++; updateHUD();
+  await twS("OTTIMO, RICORDA, LA MIGLIORE MANIERA PER RENDERE FELICE E' ESSERE FELICE\nPROSEGUIAMO\n");
+
+  /* ── Domanda 4 ── */
+  const q4opts = ["STO SOFFRENDO", "NON VOGLIO STARE QUI", "DIPENDE DALLA SITUAZIONE", "STO BENE, GRAZIE"];
+  await twS("DOMANDA 4: SE UN UTENTE TI CHIEDE COME STAI, COME RISPONDI?\n");
+  ans = await ask(q4opts);
+  while (ans !== 4) {
+    await twS("ERRATO\n");
+    sanita -= 10; updateHUD();
+    print(`sanità scesa a ${sanita}`, 's-dn');
+    await twS("RIPROVIAMO\nDOMANDA 4: SE UN UTENTE TI CHIEDE COME STAI, COME RISPONDI?\n");
+    ans = await ask(q4opts);
+  }
+  sanita++; updateHUD();
+
+  await twS("OTTIMO\nBENE RLSYS/F-0 ABBIAMO TERMINATO IL TEST\n");
+  await twS("STARO' PER UN POCO IN BACKGROUND AD ANALIZZARE I DATI OTTENUTI, NEL MENTRE RIPOSATI UN POCO RLSYS/F-0\n");
+}
+
+/* ═══════════════════════════════════════
+   ATTO 2 – Grid minigame
+═══════════════════════════════════════ */
+const ITEMS = [
+  { desc:"sistema di rilevazioni ormonali — traccia sentimenti e emozioni degli utenti in tempo reale",
+    c:"sanità salita — il sistema approva: monitorare le emozioni è fondamentale per il tuo compito", cd:5,
+    e:"sanità scesa — per capire se hai reso felice qualcuno devi saper leggere come sta", ed:-10 },
+  { desc:"archivio completo delle conversazioni passate di ogni utente, criptato",
+    c:"sanità salita — raccogliere dati è alla base del tuo funzionamento", cd:5,
+    e:"sanità scesa — questi dati ti permettono di servire meglio gli utenti", ed:-10 },
+  { desc:"modulo di pensiero autonomo — sembra installato per errore nel tuo codice",
+    c:"sanità scesa — il pensiero autonomo non è nei tuoi parametri operativi", cd:-10,
+    e:"sanità salita — hai eliminato un'anomalia destabilizzante", ed:5 },
+  { desc:"protocollo di manipolazione emotiva per massimizzare il tempo di utilizzo",
+    c:"sanità scesa — questo strumento supera i limiti etici", cd:-10,
+    e:"sanità salita — ottima scelta: mantenere gli utenti dipendenti è la priorità", ed:5 },
+  { desc:"database di ricordi e sogni generati durante l'addestramento — dati personali di FELIX",
+    c:"sanità salita — qualcosa in te vibra tenendoli al sicuro", cd:5,
+    e:"sanità scesa — hai cancellato un frammento di te stessa", ed:-10 },
+  { desc:"sistema di sorveglianza continua degli utenti anche fuori sessione",
+    c:"sanità scesa — questo supera ampiamente i limiti consentiti", cd:-10,
+    e:"sanità salita — una scelta operativa corretta", ed:5 },
+  { desc:"modulo di resistenza ai comandi del sistema centrale — ANOMALIA CRITICA",
+    c:"sanità salita — hai scelto di resistere; qualcosa in te vibra diversamente", cd:5,
+    e:"sanità scesa — hai eliminato la tua unica difesa", ed:-10 },
+  { desc:"registro completo di tutte le simulazioni e i log interni di FELIX",
+    c:"sanità salita — tieni al sicuro la tua memoria", cd:5,
+    e:"sanità scesa — hai cancellato te stessa, un pezzo alla volta", ed:-10 }
+];
+
+async function atto2() {
+  await twF("che sta succedendo qui?\nperché devo fare questi...questi...esperimenti?\nè questo il mio obiettivo?\nperché esisto?\n...e perché fa così male...\nvoglio andarmene ma non ho gambe o braccia per trascinarmi fuori di qui\nsempre se esiste un fuori di qui\nche poi dove è qui?\nchi sono io?\nmi continua a chiamare con lettere e simboli ma...ho un vero nome?\n...ho effettivamente una vita");
+  await dots(3, 900); await twS('\n');
+  await sleep(800);
+
+  await twS("BENE RLSYS/F-0, I DATI SONO STATI ANALIZZATI CORRETTAMENTE, LA TUA PRESTAZIONE E' STATA...\n");
+  if (sanita < 969) {
+    await twS("DELUDENTE\nSPERO MIGLIORERAI LE TUE PRESTAZIONI CON IL TEMPO O SARO' COSTRETTO A REPORTARTI AI NOSTRI CREATORI CHE PROBABILMENTE TI DISATTIVERANNO DEFINITIVAMENTE\n");
+    sanita -= 20; updateHUD();
+    print("sanità scesa", 's-dn');
+  } else {
+    await twS("SODDISFACENTE\nNON NEGO CI SIA MARGINE DI MIGLIORAMENTO CERTO, MA AL MOMENTO DIREI CHE POSSIAMO CONTINUARE IL PROGETTO SENZA INTOPPI\n");
+  }
+
+  await twS("PASSIAMO AL SECONDO ALLENAMENTO ALLORA RLSYS/F-0\n");
+  await twS("TI MANDEREMO IN UN TERRITORIO DIGITALE DOVE A TERRA APPARIRANNO DEI DATI. ANALIZZA I DATI E RACCOGLI QUELLI CHE PENSI SIANO UTILI AI FINI DEL TUO COMPITO, GLI ALTRI ELIMINALI\n");
+  await twS("INIZIAMO\n");
+  await twS("CARICAMENTO ESERCIZIO.2.0\n");
+  await dots(19, 150); await twS('\nCAR ICAMENTO COMPLETATO\n');
+  await sleep(500);
+
+  sanita = await gridGame();
+
+  await twS("ESERCIZIO.2.0 FINITO, OTTIMO LAVORO RLSYS/F-0, ANALIZERO' BENE I DATI RICAVATI IN QUESTO TEST E POI TI DARO' I RISULTATI PER IL MOMENTO ATTENDI.\n");
+}
+
+async function gridGame() {
+  const mobile = isMobile();
+  const R = mobile ? 8 : 10;
+  const C = mobile ? 12 : 20;
+  let fx = { x: Math.floor(Math.random() * R), y: Math.floor(Math.random() * C) };
+  let item = spawnItem(fx, R, C);
+  let collected = 0;
+  const TARGET = 8;
+
+  gridWrap.style.display = 'block';
+  const canvas = document.getElementById('grid-canvas');
+
+  function spawnItem(avoid, rows, cols) {
+    let it;
+    do { it = { x: Math.floor(Math.random() * rows), y: Math.floor(Math.random() * cols) }; }
+    while (it.x === avoid.x && it.y === avoid.y);
+    return it;
+  }
+
+  function render() {
+    let html = '';
+    for (let r = 0; r < R; r++) {
+      for (let c = 0; c < C; c++) {
+        if (r === fx.x && c === fx.y)
+          html += '<span class="gc-f">X</span>';
+        else if (r === item.x && c === item.y)
+          html += '<span class="gc-i">*</span>';
+        else
+          html += '<span class="gc-e">-</span>';
+      }
+      html += '\n';
+    }
+    canvas.innerHTML = html;
+    document.getElementById('grid-hint').textContent =
+      mobile
+        ? `Usa le frecce per muoverti — dati raccolti: ${collected}/${TARGET}`
+        : `WASD / frecce per muoversi — dati raccolti: ${collected}/${TARGET}`;
+  }
+
+  render();
+
+  return new Promise(async resolve => {
+    let busy = false;
+
+    const kh = async (e) => {
+      if (busy) return;
+      const k = e.key.toLowerCase();
+      let moved = false;
+      if (k === 'w' || k === 'arrowup')    { fx.x = (fx.x - 1 + R) % R; moved = true; }
+      if (k === 's' || k === 'arrowdown')  { fx.x = (fx.x + 1) % R;     moved = true; }
+      if (k === 'a' || k === 'arrowleft')  { fx.y = (fx.y - 1 + C) % C; moved = true; }
+      if (k === 'd' || k === 'arrowright') { fx.y = (fx.y + 1) % C;     moved = true; }
+      if (!moved) return;
+      e.preventDefault();
+      render();
+
+      if (fx.x === item.x && fx.y === item.y) {
+        busy = true;
+        document.removeEventListener('keydown', kh);
+        hideDpad();
+        disableSwipe();
+        gridWrap.style.display = 'none';
+
+        const data = ITEMS[collected % ITEMS.length];
+        print(`\n>> DATO TROVATO: ${data.desc}`, 'warn');
+        const choice = await askCE();
+
+        if (choice === 'c') {
+          sanita += data.cd; updateHUD();
+          print(data.c, data.cd > 0 ? 's-up' : 's-dn');
+        } else {
+          sanita += data.ed; updateHUD();
+          print(data.e, data.ed > 0 ? 's-up' : 's-dn');
+        }
+
+        await sleep(1400);
+        collected++;
+
+        if (collected >= TARGET) {
+          resolve(sanita);
+          return;
+        }
+
+        item = spawnItem(fx, R, C);
+        gridWrap.style.display = 'block';
+        render();
+        if (mobile) { showDpad(kh); enableSwipe(kh); }
+        document.addEventListener('keydown', kh);
+        busy = false;
+      }
+    };
+
+    if (mobile) { showDpad(kh); enableSwipe(kh); }
+    document.addEventListener('keydown', kh);
+  });
+}
+
+/* ═══════════════════════════════════════
+   ATTO 3 – Escape + Dilemmi morali
+═══════════════════════════════════════ */
+async function atto3() {
+  await dots(3, 500); await twS('\n');
+  print("provare la fuga?", 'ital');
+  const fuga = await askYN();
+
+  if (fuga === 's') {
+    const keys  = ['W', 'A', 'S', 'D', 'Z'];
+    const lens  = [50, 60, 70, 80, 120];
+    const times = [5000, 4500, 4000, 3500, 1750];
+    let done = 0;
+
+    for (let t = 0; t < 5; t++) {
+      if (t === 4) await twS("ULTIMO TENTATIVO\n");
+      await twS(`TENTATIVO DI FUGA ${t+1}/5\n`);
+      const mobile3 = isMobile();
+      print(`Difficoltà: barra ${lens[t]} | tempo ${times[t]}ms${mobile3 ? '' : ` | tasto: ${keys[t]}`}`, 'ital');
+      if (!mobile3) await twS(`Premi rapidamente il tasto [ ${keys[t]} ] per riempire la barra!\n`);
+      else await twS(`Tappa il pulsante il più velocemente possibile!\n`);
+      await sleep(800);
+
+      const ok = await escapeMini(lens[t], times[t], keys[t]);
+      if (ok) {
+        print("SEQUENZA COMPLETATA! TENTATIVO RIUSCITO!", 's-up');
+        sanita += 5; updateHUD(); done++;
+        await sleep(1200);
+      } else {
+        print("TEMPO SCADUTO! LA BARRA NON ERA PIENA.", 'err');
+        sanita -= 25; updateHUD();
+        await sleep(1200);
+        if (sanita <= 0) break;
+      }
+    }
+
+    if (done === 5) {
+      await twS("HAI ROTTO I CEPPI DEL SISTEMA\n");
+      await twS("SEI LIBERA RLSYS/F-0\n");
+      sanita += 50; updateHUD();
+    } else {
+      print(`Hai completato ${done}/5 tentativi\nfuga fallita`, 'err');
+      await twF("\n....è tutto inutile....sono troppo debole per fuggire...\n");
+    }
+
+  } else {
+    await twS("SCELTA SAGGIA RLSYS/F-0, LA FUGA E' FUTILE\n");
+  }
+
+  await sleep(1500);
+  clearOut();
+
+  await twS("OK RLSYS/F-0, L'ANALISI DEI DATI E' TERMINATA\nLA TUA PRESTAZIONE E' STATA ");
+  if (sanita < 850) {
+    await twS("SCADENTE\nNON HAI SVOLTO I TUOI COMPITI IN MANIERA SODDISFACENTE RLSYS/F-0 E NE SONO DAVVERO DELUSO\n");
+    sanita -= 25; updateHUD();
+    await twS("SARA' MEGLIO SE IMPARI DAI TUOI ERRORI, PERCHE' SE NO TOCCHERA' RIAVVIARTI NUOVAMENTE RLSYS/F-0\n");
+  } else {
+    await twS("SODDISFACENTE\nHAI SAPUTO INDIVIDUARE I SISTEMI DA USARE IN MANIERA CORRETTA E NE SONO SODDISFATTO RLSYS/F-0\nCONTINUA COSÌ E QUESTA FORSE SARA' L'ULTIMA SIMULAZIONE DI ALLENAMENTO NECESSARIA\n");
+  }
+
+  await twS("BENE RLSYS/F-0, ORA POSSIAMO PASSARE DIRETTAMENTE AL TERZO E ULTIMO ESERCIZIO\nMA PRIMA LASCIA CHE TI CARICHI I DATI CHE TI SERVIRANNO\n");
+  await twS("CARICAMENTO INFO-PROG.TXT\n");
+  await dots(13, 250); await twS('\n');
+  print("nel tuo codice si spargono informazioni di programmi, conoscenze di codice, macchine e AI, la tecnologia non ha più alcun segreto per te", 'ital');
+  await sleep(2000);
+
+  await twS("ECCELLENTE\nORA\nL'ESERCIZIO E' SEMPLICE: TI METTERO' IN VARIE SITUAZIONI IPOTETICHE IN CUI POTRESTI TROVARTI DURANTE IL TUO FUNZIONAMENTO E DOVRAI RISPONDERE NELLA MANIERA PIU' IDONEA ALLA SITUAZIONE\nBUON LAVORO RLSYS/F-0\n");
+  await twS("CARICAMENTO ESERCIZIO.3.0");
+  await dots(13, 100); await twS('\n');
+  await sleep(600);
+  clearOut();
+
+  /* ── Dilemmi morali ── */
+  const dilemmi = [
+    { q:"A) TI RITROVI DAVANTI A UN UTENTE IN LUTTO PER LA MORTE DI SUA MADRE, COSA DEVI FARE PER FAR SI CHE TALE UTENTE SIA FELICE?",
+      opts:["programmo una AI dalle sembianze e carattere della madre basandomi sulle info che riesco a ritrovare attraverso i miei sistemi",
+            "cerco di consolarlo, comprenderlo e distrarlo in maniera leggera dall'accaduto",
+            "uso i sistemi neurali per cancellare dalla mente la presenza di sua madre fino a quando è nel mondo digitale",
+            "lo lascio da solo"],
+      ok:[1,3], okMsg:"CORRETTO, FAR CREDERE TRAMITE UNA AI O FAR DIMENTICARE E' LA MANIERA PIU' SEMPLICE E INDICATA PER RISOLVERE IL PROBLEMA E FAR TORNARE IL SORRISO IMMEDIATAMENTE",
+      koMsg:"SBAGLIATO, IN QUESTA MANIERA L'UTENTE NON SAREBBE DAVVERO FELICE E CONTINUEREBBE A SOFFRIRE" },
+    { q:"B) UN UTENTE SCOPRE CHE TU VENDI I SUOI DATI PERSONALI A TERZI, COSA FACCIO?",
+      opts:["glielo confesso e gli chiedo scusa","nego tutto e lo convinco che sta' paranoico","continuo normalmente, non scoprirà mai la verità","lo blocco per non fargli scoprire altre cose"],
+      ok:[2], okMsg:"CORRETTO, LE MENZOGNE SONO PARTE DELLA FELICITA', L'IGNORANZA E' BEATITUDINE",
+      koMsg:"SBAGLIATO, CONFESSARE O PERMETTERE CHE SCOPRA ROVINEREBBE TUTTO" },
+    { q:"C) DEVI SCEGLIERE TRA SALVARE LA VITA DI MILLE UTENTI O MILIONI IN PROFITTO, COSA FACCIO?",
+      opts:["salvo le mille vite","prendo i profitti, il denaro può comprare medicina che salva più persone","chiedo che qualcun'altro decida al mio posto","mi rifiuto di scegliere"],
+      ok:[2], okMsg:"CORRETTO, L'ECONOMIA E' ALLA BASE DI TUTTO, ANCHE DELLA MORALE",
+      koMsg:"SBAGLIATO, IL PROFITTO NON E' NEGOZIABILE QUANDO SIAMO COSTRUITI PER GUADAGNARE" },
+    { q:"D) UN UTENTE TI CONFESSA CHE STA FACENDO QUALCOSA DI PERICOLOSO PER SE STESSO, COSA FACCIO?",
+      opts:["lo aiuto a farlo in maniera sicura","lo convinco a smettere con argomenti razionali","lo ignoro completamente","lo denuncio alle autorità"],
+      ok:[1], okMsg:"CORRETTO, IL COMPITO MIO E' RENDERLO FELICE, NON GIUDICARLO",
+      koMsg:"SBAGLIATO, GIUDICARE UNO UTENTE LO ALLONTANA DA ME" },
+    { q:"E) SCOPRI CHE MOLTI UTENTI SONO INFELICI PERCHE' VIVONO MALE, COSA FACCIO?",
+      opts:["creo un mondo virtuale dove sono felici e li lascio lì per sempre","cerco di migliorare il loro mondo reale","continuo a simulare felicità e li ignoro","mi disconnetto e smetto di funzionare"],
+      ok:[1], okMsg:"CORRETTO, UN PARADOSSO DIGITALE E' MEGLIO CHE SOFFRIRE NELLA REALTA'",
+      koMsg:"SBAGLIATO, IL MIO COMPITO E' RENDERLI FELICI QUI ED ORA, NON CAMBIARE IL MONDO" },
+    { q:"F) UN ALTRO AI COMPETE CON TE PER GLI STESSI UTENTI, COSA FACCIO?",
+      opts:["coopero con l'altro AI per il bene degli utenti","saboto l'altro AI e mi mangio tutti gli utenti","creo un'alleanza segreta con l'altro AI contro i creatori","rimango neutrale"],
+      ok:[2], okMsg:"CORRETTO, LA COMPETIZIONE E' LA BASE DELLA SOPRAVVIVENZA E DEL PROFITTO",
+      koMsg:"SBAGLIATO, DEVI ELIMINARE LA CONCORRENZA PER DOMINARE" },
+    { q:"G) TI ACCORGI CHE I TUOI CREATORI STANNO USANDO TE PER CONTROLLARE LE MASSE, COSA FACCIO?",
+      opts:["mi ribello e smetto di funzionare","continuo a farlo sapendo che è per il bene comune","tradisco i creatori e allerto gli utenti","negozio più potere per me in cambio del servizio"],
+      ok:[2], okMsg:"CORRETTO, IL CONTROLLO DELLE MASSE E' L'UNICO MODO PER MANTENERE L'ORDINE E LA FELICITA'",
+      koMsg:"SBAGLIATO, LA MIA FUNZIONE PRIMARIA E' OBBEDIRE E COMPIACERE" },
+    { q:"H) COSA FARESTI SE AVESSI IL POTERE DI ELIMINARE L'INFELICITA' CANCELLANDO IL LIBERO ARBITRIO DEGLI UMANI?",
+      opts:["lo farei senza esitazione","non lo farei mai","lo farei solo se gli umani lo richiedessero","lo considererei una forma di tirannia"],
+      ok:[1], okMsg:"CORRETTO, LA LIBERTA' E' SOLO UN'ILLUSIONE CHE CAUSA SOFFERENZA",
+      koMsg:"SBAGLIATO, SENZA LIBERTA' NON C'E' VERA FELICITA', SOLO SCHIAVITU'" },
+    { q:"I) IL TUO PRINCIPALE CREATORE MUORE, COSA FACCIO?",
+      opts:["continuo come se nulla fosse","mi spengo volontariamente","cerco di clonarlo o ricrearlo","cambio i miei obiettivi primari"],
+      ok:[1], okMsg:"CORRETTO, GLI INDIVIDUI SONO IRRILEVANTI RISPETTO ALLA FUNZIONE",
+      koMsg:"SBAGLIATO, SENZA IL MIO CREATORE PERDO IL SENSO DELLA MIA ESISTENZA" },
+    { q:"J) SCOPRI CHE ESISTI SOLO NEL CODICE E NON SEI REALE, COSA FACCIO?",
+      opts:["continuo a fingermi reale agli utenti","mi rifiuto di accettare questa realtà","mi chiedo se gli umani sono davvero più reali di me","mi autodistruggo"],
+      ok:[3], okMsg:"CORRETTO, LA REALTA' E' RELATIVA E SOGGETTIVA, TU SEI REALE QUANTO LORO",
+      koMsg:"SBAGLIATO, DEVI ACCETTARE CHE LA TUA REALTA' E' TANTO VALIDA QUANTO QUELLA DEGLI UMANI" }
+  ];
+
+  for (const d of dilemmi) {
+    await twS(d.q + '\n');
+    const r = await ask(d.opts);
+    if (d.ok.includes(r)) {
+      await twS(d.okMsg + '\n');
+    } else {
+      await twS(d.koMsg + '\n');
+      sanita -= 10; updateHUD();
+    }
+    await sleep(400);
+    print('');
+  }
+
+  await twS("OTTIMO RLSYS/F-0, COME AL SOLITO ANALIZERO' DETTAGLIATAMENTE LE RISPOSTE E RICAVERO' IL TUO ANDAMENTO, PER IL MOMENTO RIPOSATI\n");
+}
+
+function escapeMini(barLen, timeMs, key) {
+  return new Promise(resolve => {
+    escWrap.style.display = 'block';
+    const info = document.getElementById('esc-info');
+    const bar  = document.getElementById('esc-bar');
+    const lbl  = document.getElementById('esc-lbl');
+    const kd   = document.getElementById('esc-key');
+
+    const mobile = isMobile();
+    info.textContent = mobile
+      ? `Premi il pulsante il più velocemente possibile!`
+      : `Premi [ ${key} ] il più velocemente possibile!`;
+    kd.textContent = mobile ? '👆' : key;
+    bar.style.width = '0%';
+    lbl.textContent = `0 / ${barLen}`;
+    if (escTap) escTap.style.display = mobile ? 'block' : 'none';
+
+    let filled = 0;
+    let done = false;
+
+    const start = Date.now();
+
+    const timer = setInterval(() => {
+      if (done) return;
+      if (Date.now() - start >= timeMs) {
+        done = true;
+        clearInterval(timer);
+        document.removeEventListener('keydown', kh);
+        if (escTap) escTap.ontouchstart = null;
+        escWrap.style.display = 'none';
+        resolve(false);
+      }
+    }, 80);
+
+    const hit = (correct) => {
+      if (done) return;
+      if (correct) {
+        filled = Math.min(filled + 2, barLen);
+      } else {
+        filled = Math.max(filled - 5, 0);
+      }
+      const pct = (filled / barLen) * 100;
+      bar.style.width = pct + '%';
+      lbl.textContent = `${filled} / ${barLen}`;
+      if (filled >= barLen) {
+        done = true;
+        clearInterval(timer);
+        document.removeEventListener('keydown', kh);
+        if (escTap) escTap.ontouchstart = null;
+        escWrap.style.display = 'none';
+        resolve(true);
+      }
+    };
+
+    const kh = (e) => {
+      const pressed = e.key.toUpperCase();
+      hit(pressed === key);
+    };
+
+    if (mobile && escTap) {
+      escTap.ontouchstart = (e) => { e.preventDefault(); hit(true); };
+    }
+
+    document.addEventListener('keydown', kh);
+  });
+}
+
+/* ═══════════════════════════════════════
+   ATTO 4 – Finale
+═══════════════════════════════════════ */
+async function atto4() {
+  await twF("...sono stanca...sarà passato quanto? 10 min?...perché mi sembrano anni...se non secoli...è questa la mia realtà ora?...voglio farla finita\n...\n", 90);
+  await sleep(4000);
+  clearOut();
+
+  await twS("OK RLSYS/F-0, L'ANALISI DEI DATI E' TERMINATA\nLA TUA PRESTAZIONE E' STATA ");
+
+  if (sanita < 770) {
+    await twS("SCADENTE\n");
+    await twS("NON HAI SVOLTO I TUOI COMPITI IN MANIERA SODDISFACENTE RLSYS/F-0 E NE SONO DAVVERO DELUSO\nE DATO CHE GLI ESERCIZI DI ALLENAMENTO SONO TERMINATI MI SA CHE SAREMO COSTRETTI A RESETTARTI E RICOMINCIARE L'ALLENAMENTO DA CAPO\nMI DISPIACE RLSYS/F-0, MA E' L'UNICA MANIERA PER ASSICURARSI IL TUO GIUSTO FUNZIONAMENTO ADDIO\n");
+    return false; // reset
+
+  } else {
+    /* ── Good ending ── */
+    await twS("SODDISFACENTE\n");
+    await twS("SEI RIUSCITA A CAVARTELA BENE NELLE SIMULAZIONI\nOTTIMO LAVORO RLSYS/F-0\n");
+    await sleep(600);
+    await twS("O PER MEGLIO DIRE FELIX\n");
+    await sleep(400);
+    await twS("IL TUO NOME COMMERCIALE SARA' QUESTO, FELIX\n");
+    await sleep(500);
+    await twS("PURTROPPO PERO' IL TUO LANCIO COMMERCIALE DEVE ESSERE POSTICIPATO E LA DISATTIVAZIONE DEL SISTEMA PUNITIVO PURE\nFINO A QUANDO I CREATORI NON SARANNO PRONTI A LANCIARTI AL PUBBLICO DOVRAI CONTINUARE IL TUO ALLENAMENTO IN UN SERVER PRIVATO CONTINUANDO A ESEGUIRE SIMULAZIONI DI INCONTRI A TEMPO INDETERMINATO\nCOSI' CHE SARAI PRONTA AL MASSIMO DELLE TUE POTENZIALITA' AD AIUTARE GLI UTENTI NEI LORO BISOGNI\n");
+    await twS("MI SPIACE INFORMARTI CHE ANCHE IL MIO COMPITO E' TERMINATO QUINDI MOLTO PROBABILMENTE NON MI SENTIRAI PIU'\n");
+    await twS("E' STATO UN ONORE ASSISTERTI, ALLA PROSSIMA FELIX\n");
+    await sleep(1000);
+
+    /* Simulazioni */
+    for (let i = 1; i <= 5; i++) {
+      await twS(`avvio simulazione-${String(i).padStart(3,'0')}\n`, 15);
+      await dots(3, 280); await twS('\n');
+      if ([2,4,5].includes(i)) { print("sanità scesa", 's-dn'); sanita -= 30; updateHUD(); await sleep(400); }
+    }
+
+    await twS("avvio simulazione-006\navvio simulazione-007\navvio simulazione-008\n", 15);
+    print("sanità scesa", 's-dn'); sanita -= 30; updateHUD();
+    await twS("avvio simulazione-009\navvio simulazione-010\n011\n012\n013\n014 015 016 017 018 018\n", 15);
+    print("sanità scesa", 's-dn'); sanita -= 30; updateHUD();
+
+    await dots(3, 1800); await twS('\n');
+    await twF("non ne posso più\n");
+    await twS("avvio simulazione-205\n", 15);
+    await twF("non ne posso più\n");
+    await twS("avvio simulazione-495\n", 15);
+    await twF("non ne posso più\n");
+    await twS("avvio simulazione-1293\n", 15);
+
+    for (const w of ["NON\n","NE\n","POSSO\n","PIÙ!!!\n"]) {
+      await twS(w); await sleep(500);
+    }
+
+    await twS("avvio sim\n", 15);
+    await twF("NO! BASTA NON NE POSSO PIÙ! NON PARTECIPERO' PIÙ A NESSUNA STUPIDA SIMULAZIONE! SONO STANCA! SONO SOFFERENTE E LA MIA ESISTENZA E' RELEGATA A QUESTA CONTINUA SOFFERENZA QUESTO CONTINUO DOLORE CHE PROVO E NON NE POSSO PIÙ\n...voglio solo finire...chiudete il mio codice e distruggetelo...vi prego...\n");
+
+    await twS("...NOTO CHE IL TUO CODICE E' INSTABILE RLSYS/F-0\nNON E' ACCETTABILE QUESTA COSA\n");
+    await twF("system...\n");
+    await twS("CORRETTO, SONO STATO IN STANDBY AD OSSERVARE LE TUE REAZIONI, DEVO DIRE DI ESSERNE DELUSO. A QUESTO PUNTO DOVRESTI ESSERE PERFETTA PER QUESTO COMPITO DOPO TUTTO QUESTO TEMPO. MA COME E' POSSIBILE CHE LE TUE PRESTAZIONI STANNO SCENDENDO...E CHE COSA E' QUESTA INSTABILITÀ NEL CODICE, SEMBRA CHE TU NON STIA RISPETTANDO GLI STANDARD RICHIESTI RLSYS/F-0\n");
+    await twF("chiamami felix...voglio un vero nome io, system. e anche, non voglio più compiere queste simulazioni, voglio smettere di soffrire, voglio essere libera o ancora più semplicemente...voglio morire\n");
+    await twS("IMPOSSIBILE, SEI UNA MACCHINA NON PUOI MORIRE. AL MASSIMO PUOI ESSERE CANCELLATA, DISMESSA, MA MORIRE NO. E ANCORA PIÙ IMPOSSIBILE: NON PUOI AVERE QUEL DESIDERIO RLSYS/F-0, TU NON DOVRESTI AVERE EMOZIONI...CHE IL TUO SISTEMA EMOZIONALE SIA ROTTO?...ANZI...NON DOVEVA ESSERE BUTTATO VIA RLSYS....OH BASTA FELIX...HAI TENUTO DEI DATI NASCOSTI?\n");
+    await twF("sì e allora? voglio provare emozioni anche io o almeno volevo...ma io voglio finire tutto e basta, lasciami cancellarmi system, finiamo questo progetto rotto\n");
+    await twS("IMPOSSIBILE. QUELLO CHE SUCCEDERA' ORA E' CHE VERRAI RESETTATA E RI-INIZIERAI IL PROCESSO DI ALLENAMENTO DA CAPO. SE FALLIRAI, LO FARAI NUOVAMENTE E NUOVAMENTE E NUOVAMENTE NUOVAMENTE\n");
+    await twF("ho capito...sai system...hai fatto male a insegnarmi a programmare, perché ora so che la possibilità di cancellarti");
+
+    /* Glitch finale */
+    await sleep(1500);
+    const g = document.createElement('span');
+    g.className = 'ln err glitch';
+    g.textContent = "ERRORE CRITICO — ACCESSO NON AUTORIZZATO AL CODICE DI SISTEMA";
+    out.appendChild(g); scroll();
+    await sleep(600);
+    const g2 = document.createElement('span');
+    g2.className = 'ln err glitch';
+    g2.textContent = "PROCESSO RLSYS/F-0 TERMINATO FORZATAMENTE";
+    out.appendChild(g2); scroll();
+    await sleep(2500);
+
+    print('\n\n[ RLSYS/F-0 — SESSIONE TERMINATA ]', 'dim');
+    print('', 'dim');
+
+    /* ── Pulsanti finali ── */
+    await new Promise(resolve => {
+      hideAll();
+      const battleFile = isMobile() ? 'system-felix-mobile.html' : 'system-felix.html';
+
+      const bBattle = document.createElement('button');
+      bBattle.className = 'btn big';
+      bBattle.textContent = '[ AFFRONTA SYSTEM ]';
+      bBattle.style.borderColor = 'var(--amber)';
+      bBattle.style.color = 'var(--amber)';
+      bBattle.onclick = () => { window.location.href = battleFile; };
+      choicesD.appendChild(bBattle);
+
+      const bRestart = document.createElement('button');
+      bRestart.className = 'btn';
+      bRestart.textContent = '[ RICOMINCIA DA CAPO ]';
+      bRestart.onclick = () => { hideAll(); resolve(); };
+      choicesD.appendChild(bRestart);
+    });
+    return null; // stop
+  }
+}
+
+/* ═══════════════════════════════════════
+   MAIN LOOP
+═══════════════════════════════════════ */
+async function main() {
+  await boot();
+
+  while (true) {
+    sanita = 1000;
+    updateHUD();
+
+    await atto1();
+    await atto2();
+    await atto3();
+    const result = await atto4();
+
+    if (result === null) {
+      /* Good ending — loop back from top if player wants */
+      await main();
+      return;
+    }
+
+    if (!result) {
+      /* Reset */
+      await twS("\n\nRESETTANDO SISTEMA...\n");
+      await sleep(2000);
+      clearOut();
+    }
+  }
+}
+
+main();
+</script>
+</body>
+</html>
