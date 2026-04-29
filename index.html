@@ -358,6 +358,22 @@ body::after {
 @keyframes fadein { from{opacity:0} to{opacity:1} }
 #terminal { animation: fadein 1.2s ease; }
 
+/* Music credits */
+#music-credits {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--gdim);
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#music-credits:hover { opacity: 1; pointer-events: auto; }
+
 /* ════════════════════════════════════
    RESPONSIVE — TABLET
 ════════════════════════════════════ */
@@ -403,6 +419,13 @@ body::after {
 </style>
 </head>
 <body>
+
+<!-- BGM -->
+<audio id="bgm" src="GLACEIR.mp3" loop></audio>
+
+<!-- Credits musicali -->
+<div id="music-credits">♪ GLACEIR — MONET (orig. tobyfox)</div>
+
 <div id="terminal">
   <div id="hdr">
     <span id="hdr-left" title="">RLSYS/F-0 // FELIX TRAINING SYSTEM v1.0.3</span>
@@ -1419,6 +1442,27 @@ async function main() {
       }
       window.location.reload();
     });
+  });
+})();
+
+/* ═══════════════════════════════════════
+   BGM — GLACEIR (MONET / tobyfox)
+═══════════════════════════════════════ */
+(function() {
+  const bgm = document.getElementById('bgm');
+  bgm.volume = 0.5;
+
+  bgm.play().catch(() => {
+    /* Autoplay bloccato: aspetta la prima interazione */
+    const unlock = () => {
+      bgm.play().catch(() => {});
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('keydown', unlock);
+    document.addEventListener('touchstart', unlock);
   });
 })();
 
