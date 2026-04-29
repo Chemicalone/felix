@@ -1350,6 +1350,13 @@ async function runFrom(atto, savedSanita) {
 async function main() {
   const save = loadGame();
 
+  /* Avvio diretto da debug — salta il prompt */
+  if (save && save.autoload) {
+    clearOut();
+    await runFrom(save.atto, save.sanita);
+    return;
+  }
+
   if (save && save.atto > 1) {
     /* Mostra prompt di caricamento */
     clearOut();
@@ -1405,9 +1412,12 @@ async function main() {
     btn.addEventListener('click', () => {
       const atto = parseInt(btn.dataset.atto);
       overlay.classList.remove('active');
-      clearOut();
-      deleteSave();
-      runFrom(atto, 1000);
+      if (atto === 1) {
+        deleteSave();
+      } else {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ atto, sanita: 1000, autoload: true }));
+      }
+      window.location.reload();
     });
   });
 })();
