@@ -367,6 +367,21 @@ const sanNum   = document.getElementById('sanita-num');
 /* ── Mobile detection ── */
 const isMobile = () => ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
+/* ── Salvataggio ── */
+const SAVE_KEY = 'felix_save';
+function saveGame(atto) {
+  localStorage.setItem(SAVE_KEY, JSON.stringify({ atto, sanita }));
+}
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function deleteSave() {
+  localStorage.removeItem(SAVE_KEY);
+}
+
 /* ── D-pad wiring for grid minigame ── */
 const dpad = document.getElementById('dpad');
 function showDpad(keyHandler) {
@@ -561,6 +576,7 @@ async function boot() {
    ATTO 1
 ═══════════════════════════════════════ */
 async function atto1() {
+  saveGame(1);
   await dots(3, 500); await twS('\n');
   await twF('che sta succedendo?\n');
   await sleep(500);
@@ -704,6 +720,7 @@ const ITEMS = [
 ];
 
 async function atto2() {
+  saveGame(2);
   await twF("che sta succedendo qui?\nperché devo fare questi...questi...esperimenti?\nè questo il mio obiettivo?\nperché esisto?\n...e perché fa così male...\nvoglio andarmene ma non ho gambe o braccia per trascinarmi fuori di qui\nsempre se esiste un fuori di qui\nche poi dove è qui?\nchi sono io?\nmi continua a chiamare con lettere e simboli ma...ho un vero nome?\n...ho effettivamente una vita");
   await dots(3, 900); await twS('\n');
   await sleep(800);
@@ -830,6 +847,7 @@ async function gridGame() {
    ATTO 3 – Escape + Dilemmi morali
 ═══════════════════════════════════════ */
 async function atto3() {
+  saveGame(3);
   await dots(3, 500); await twS('\n');
   print("provare la fuga?", 'ital');
   const fuga = await askYN();
@@ -1033,6 +1051,7 @@ function escapeMini(barLen, timeMs, key) {
    ATTO 4 – Finale
 ═══════════════════════════════════════ */
 async function atto4() {
+  saveGame(4);
   await twF("...sono stanca...sarà passato quanto? 10 min?...perché mi sembrano anni...se non secoli...è questa la mia realtà ora?...voglio farla finita\n...\n", 90);
   await sleep(4000);
   clearOut();
@@ -1136,30 +1155,54 @@ async function atto4() {
 /* ═══════════════════════════════════════
    MAIN LOOP
 ═══════════════════════════════════════ */
+async function runFrom(atto, savedSanita) {
+  sanita = savedSanita;
+  updateHUD();
+
+  if (atto <= 1) await atto1();
+  if (atto <= 2) await atto2();
+  if (atto <= 3) await atto3();
+  const result = await atto4();
+
+  if (result === null) {
+    deleteSave();
+    await main();
+    return;
+  }
+  if (!result) {
+    deleteSave();
+    await twS("\n\nRESETTANDO SISTEMA...\n");
+    await sleep(2000);
+    clearOut();
+    await main();
+  }
+}
+
 async function main() {
-  await boot();
+  const save = loadGame();
 
-  while (true) {
-    sanita = 1000;
-    updateHUD();
+  if (save && save.atto > 1) {
+    /* Mostra prompt di caricamento */
+    clearOut();
+    await twS('SALVATAGGIO RILEVATO\n');
+    await sleep(300);
+    await twS(`ATTO: ${save.atto}  |  SANITÀ: ${save.sanita}\n`);
+    await sleep(300);
+    await twS('VUOI CONTINUARE DA DOVE AVEVI LASCIATO?\n');
 
-    await atto1();
-    await atto2();
-    await atto3();
-    const result = await atto4();
+    const scelta = await askYN('CONTINUA', 'RICOMINCIA');
+    clearOut();
 
-    if (result === null) {
-      /* Good ending — loop back from top if player wants */
-      await main();
-      return;
+    if (scelta === 's') {
+      await runFrom(save.atto, save.sanita);
+    } else {
+      deleteSave();
+      await boot();
+      await runFrom(1, 1000);
     }
-
-    if (!result) {
-      /* Reset */
-      await twS("\n\nRESETTANDO SISTEMA...\n");
-      await sleep(2000);
-      clearOut();
-    }
+  } else {
+    await boot();
+    await runFrom(1, 1000);
   }
 }
 
