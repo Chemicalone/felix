@@ -165,42 +165,82 @@ body::after {
 .btn:active { background: var(--g); color: #000; opacity: 0.85; }
 .btn.big { font-size: 17px; padding: 5px 22px; }
 
-/* ── Grid minigame ── */
-#grid-wrap { display: none; margin: 6px 0; overflow-x: hidden; }
+/* ── Grid minigame — fullscreen overlay ── */
+#grid-wrap {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  flex-direction: column;
+  padding: 16px;
+}
+#grid-wrap.active { display: flex; }
+
+#grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--gdim);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+#grid-score { color: var(--amber); }
+
+#grid-canvas-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 0;
+}
+
 #grid-canvas {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 15px;
-  letter-spacing: 5px;
-  line-height: 1.4;
-  overflow-x: auto;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: pre;
+  user-select: none;
 }
-.gc-f  { color: #ffffff; }
-.gc-i  { color: var(--amber); }
+
+.gc-f  { color: #ffffff; text-shadow: 0 0 8px #fff; }
+.gc-i  { color: var(--amber); text-shadow: 0 0 6px var(--amber); }
 .gc-e  { color: #002a0a; }
-#grid-hint { font-size: 12px; color: var(--gdim); margin-top: 3px; }
+
+#grid-hint {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--gdim);
+  text-align: center;
+  margin-top: 6px;
+}
 
 /* ── Grid d-pad (mobile) ── */
 #dpad {
   display: none;
-  margin-top: 10px;
+  margin-top: 12px;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
 }
-#dpad-row { display: flex; gap: 4px; }
+#dpad-row { display: flex; gap: 6px; }
 .dpad-btn {
-  width: 64px; height: 64px;
+  width: 72px; height: 72px;
   background: transparent;
   border: 1px solid var(--gdim);
   color: var(--g);
-  font-size: 26px;
+  font-size: 28px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 .dpad-btn:active { background: var(--gdim); }
 
@@ -252,7 +292,59 @@ body::after {
 }
 #esc-tap:active { background: rgba(255,184,0,0.15); }
 
-/* Glitch animation */
+/* ── Cheat overlay ── */
+#cheat-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,0.92);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-family: 'VT323', monospace;
+}
+#cheat-overlay.active { display: flex; }
+#cheat-title {
+  font-size: 28px;
+  color: var(--red);
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 12px var(--red);
+}
+#cheat-subtitle {
+  font-size: 15px;
+  color: var(--gdim);
+  margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.cheat-btn {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  padding: 8px 36px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  width: 280px;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.cheat-btn:hover, .cheat-btn:active { background: var(--red); color: #000; }
+#cheat-close {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--gdim);
+  font-family: 'Share Tech Mono', monospace;
+  cursor: pointer;
+  background: none;
+  border: none;
+  letter-spacing: 1px;
+}
+#cheat-close:hover { color: var(--g); }
 @keyframes glitch {
   0%,100%{transform:translate(0,0) skewX(0deg);}
   20%{transform:translate(-3px,1px) skewX(-0.5deg);}
@@ -305,7 +397,6 @@ body::after {
   .s-up, .s-dn { font-size: 12px; }
   .btn { font-size: 12px; padding: 10px 10px; }
   .btn.big { font-size: 15px; padding: 12px 14px; }
-  #grid-canvas { font-size: 11px; letter-spacing: 1px; line-height: 1.5; }
   #esc-key { font-size: 42px; }
   #inp { min-height: 50px; padding-top: 8px; }
 }
@@ -314,7 +405,7 @@ body::after {
 <body>
 <div id="terminal">
   <div id="hdr">
-    <span id="hdr-left">RLSYS/F-0 // FELIX TRAINING SYSTEM v1.0.3</span>
+    <span id="hdr-left" title="">RLSYS/F-0 // FELIX TRAINING SYSTEM v1.0.3</span>
     <div id="hdr-right">
       <span>SANITÀ:</span>
       <div id="sanita-track"><div id="sanita-fill"></div></div>
@@ -328,8 +419,14 @@ body::after {
     <div id="choices" class="choices"></div>
 
     <div id="grid-wrap">
-      <div id="grid-canvas"></div>
-      <div id="grid-hint">WASD / frecce per muoversi — raccogli *</div>
+      <div id="grid-header">
+        <span>RLSYS/F-0 // RACCOLTA DATI</span>
+        <span id="grid-score">0 / 8</span>
+      </div>
+      <div id="grid-canvas-wrap">
+        <div id="grid-canvas"></div>
+      </div>
+      <div id="grid-hint">WASD / frecce per muoversi — raggiungi ★</div>
       <div id="dpad">
         <div class="dpad-btn" id="dp-up">▲</div>
         <div id="dpad-row">
@@ -348,6 +445,17 @@ body::after {
       <button id="esc-tap">[ TAP VELOCE ]</button>
     </div>
   </div>
+</div>
+
+<!-- Cheat overlay -->
+<div id="cheat-overlay">
+  <div id="cheat-title">// MODALITÀ DEBUG //</div>
+  <div id="cheat-subtitle">accesso non autorizzato — usa con cautela</div>
+  <button class="cheat-btn" data-atto="1">[ ATTO 1 — INIZIO ]</button>
+  <button class="cheat-btn" data-atto="2">[ ATTO 2 — RACCOLTA DATI ]</button>
+  <button class="cheat-btn" data-atto="3">[ ATTO 3 — FUGA ]</button>
+  <button class="cheat-btn" data-atto="4">[ ATTO 4 — SIMULAZIONI ]</button>
+  <button id="cheat-close">[ chiudi ]</button>
 </div>
 
 <script>
@@ -438,7 +546,20 @@ function updateHUD() {
   else sanFill.style.background = 'var(--red)';
 }
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* ── Session token — interrompe esecuzioni vecchie ── */
+let _sessionId = 0;
+
+const sleep = ms => new Promise(r => {
+  const id = _sessionId;
+  setTimeout(() => r(), ms);
+  // non blocca — le funzioni che usano sleep controllano il token
+});
+
+// sleep che si interrompe se la sessione cambia
+function sleepS(ms) {
+  const id = _sessionId;
+  return new Promise(r => setTimeout(() => r(id !== _sessionId ? 'abort' : null), ms));
+}
 
 function clearOut() { out.innerHTML = ''; }
 
@@ -463,6 +584,7 @@ function printHTML(html, cls = 'sys') {
 }
 
 async function tw(text, speed = 18, cls = 'sys') {
+  const sid = _sessionId;
   const el = document.createElement('span');
   el.className = 'ln ' + cls;
   out.appendChild(el);
@@ -470,6 +592,7 @@ async function tw(text, speed = 18, cls = 'sys') {
   cur.className = 'cur';
   out.appendChild(cur);
   for (let i = 0; i < text.length; i++) {
+    if (_sessionId !== sid) { cur.remove(); return el; } // sessione cambiata → stop
     el.textContent += text[i];
     if (i % 3 === 0) scroll();
     await sleep(speed);
@@ -482,21 +605,26 @@ const twS = (t, sp=18) => tw(t, sp, 'sys');
 const twF = (t, sp=75) => tw(t, sp, 'fx');
 
 async function dots(n = 7, sp = 350) {
+  const sid = _sessionId;
   const el = document.createElement('span');
   el.className = 'ln sys';
   out.appendChild(el);
   const cur = document.createElement('span');
   cur.className = 'cur';
   out.appendChild(cur);
-  for (let i = 0; i < n; i++) { el.textContent += '.'; scroll(); await sleep(sp); }
+  for (let i = 0; i < n; i++) {
+    if (_sessionId !== sid) { cur.remove(); return; }
+    el.textContent += '.'; scroll(); await sleep(sp);
+  }
   cur.remove();
 }
 
 function hideAll() {
   choicesD.innerHTML = '';
-  gridWrap.style.display = 'none';
+  gridWrap.classList.remove('active'); // usa classList, non style.display
   escWrap.style.display = 'none';
   hideDpad();
+  disableSwipe();
 }
 
 function ask(options) {
@@ -748,15 +876,47 @@ async function atto2() {
 
 async function gridGame() {
   const mobile = isMobile();
-  const R = mobile ? 8 : 10;
-  const C = mobile ? 12 : 20;
-  let fx = { x: Math.floor(Math.random() * R), y: Math.floor(Math.random() * C) };
-  let item = spawnItem(fx, R, C);
+  const canvas  = document.getElementById('grid-canvas');
+  const scoreEl = document.getElementById('grid-score');
+  const hintEl  = document.getElementById('grid-hint');
+  const TARGET  = 8;
   let collected = 0;
-  const TARGET = 8;
 
-  gridWrap.style.display = 'block';
-  const canvas = document.getElementById('grid-canvas');
+  /* ── Calcola righe/colonne in base allo spazio disponibile ── */
+  function calcGrid() {
+    const wrap   = document.getElementById('grid-canvas-wrap');
+    const dpadH  = mobile ? (72*3 + 6*2 + 12) : 0; // dpad height + gaps
+    const hintH  = 30;
+    const hdrH   = 50;
+    const padH   = 32;
+    const availH = window.innerHeight - hdrH - hintH - dpadH - padH;
+    const availW = wrap.clientWidth || window.innerWidth - 32;
+
+    // Scegli font size in modo che la griglia riempia bene lo schermo
+    let fs = mobile ? 13 : 16;
+    const lh = fs * 1.35;
+    const cw = fs * 0.62; // larghezza carattere monospace approssimata
+
+    const R = Math.max(6,  Math.min(18, Math.floor(availH / lh)));
+    const C = Math.max(8,  Math.min(30, Math.floor(availW / (cw + 2))));
+
+    canvas.style.fontSize    = fs + 'px';
+    canvas.style.lineHeight  = '1.35';
+    canvas.style.letterSpacing = '2px';
+    return { R, C };
+  }
+
+  /* Mostra overlay a schermo intero PRIMA di calcolare le dimensioni */
+  function showGrid() { gridWrap.classList.add('active'); }
+  function hideGrid() { gridWrap.classList.remove('active'); }
+
+  const sid = _sessionId;
+  showGrid();
+
+  // Ora il wrap è visibile → calcGrid funziona
+  let { R, C } = calcGrid();
+  let fx   = { x: Math.floor(Math.random() * R), y: Math.floor(Math.random() * C) };
+  let item = spawnItem(fx, R, C);
 
   function spawnItem(avoid, rows, cols) {
     let it;
@@ -766,23 +926,21 @@ async function gridGame() {
   }
 
   function render() {
+    if (_sessionId !== sid) return;
     let html = '';
     for (let r = 0; r < R; r++) {
       for (let c = 0; c < C; c++) {
-        if (r === fx.x && c === fx.y)
-          html += '<span class="gc-f">X</span>';
-        else if (r === item.x && c === item.y)
-          html += '<span class="gc-i">*</span>';
-        else
-          html += '<span class="gc-e">-</span>';
+        if      (r === fx.x   && c === fx.y)   html += '<span class="gc-f">@</span>';
+        else if (r === item.x && c === item.y)  html += '<span class="gc-i">★</span>';
+        else                                    html += '<span class="gc-e">·</span>';
       }
       html += '\n';
     }
     canvas.innerHTML = html;
-    document.getElementById('grid-hint').textContent =
-      mobile
-        ? `Usa le frecce per muoverti — dati raccolti: ${collected}/${TARGET}`
-        : `WASD / frecce per muoversi — dati raccolti: ${collected}/${TARGET}`;
+    scoreEl.textContent = `${collected} / ${TARGET}`;
+    hintEl.textContent  = mobile
+      ? 'Frecce o swipe per muoverti — raggiungi ★'
+      : 'WASD / frecce — raggiungi ★';
   }
 
   render();
@@ -791,7 +949,7 @@ async function gridGame() {
     let busy = false;
 
     const kh = async (e) => {
-      if (busy) return;
+      if (busy || _sessionId !== sid) return;
       const k = e.key.toLowerCase();
       let moved = false;
       if (k === 'w' || k === 'arrowup')    { fx.x = (fx.x - 1 + R) % R; moved = true; }
@@ -807,12 +965,15 @@ async function gridGame() {
         document.removeEventListener('keydown', kh);
         hideDpad();
         disableSwipe();
-        gridWrap.style.display = 'none';
 
+        /* Nascondi griglia, mostra terminale con la domanda */
+        hideGrid();
+        if (_sessionId !== sid) return;
         const data = ITEMS[collected % ITEMS.length];
         print(`\n>> DATO TROVATO: ${data.desc}`, 'warn');
         const choice = await askCE();
 
+        if (_sessionId !== sid) return;
         if (choice === 'c') {
           sanita += data.cd; updateHUD();
           print(data.c, data.cd > 0 ? 's-up' : 's-dn');
@@ -821,16 +982,18 @@ async function gridGame() {
           print(data.e, data.ed > 0 ? 's-up' : 's-dn');
         }
 
-        await sleep(1400);
+        await sleep(1000);
         collected++;
 
+        if (_sessionId !== sid) return;
         if (collected >= TARGET) {
           resolve(sanita);
           return;
         }
 
+        /* Torna alla griglia */
         item = spawnItem(fx, R, C);
-        gridWrap.style.display = 'block';
+        showGrid();
         render();
         if (mobile) { showDpad(kh); enableSwipe(kh); }
         document.addEventListener('keydown', kh);
@@ -1156,13 +1319,19 @@ async function atto4() {
    MAIN LOOP
 ═══════════════════════════════════════ */
 async function runFrom(atto, savedSanita) {
+  _sessionId++;           // invalida tutte le tw/dots/sleep in corso
+  const sid = _sessionId;
   sanita = savedSanita;
   updateHUD();
+  clearOut();
+  hideAll();
 
-  if (atto <= 1) await atto1();
-  if (atto <= 2) await atto2();
-  if (atto <= 3) await atto3();
+  if (sid !== _sessionId) return;
+  if (atto <= 1) { await atto1(); if (_sessionId !== sid) return; }
+  if (atto <= 2) { await atto2(); if (_sessionId !== sid) return; }
+  if (atto <= 3) { await atto3(); if (_sessionId !== sid) return; }
   const result = await atto4();
+  if (_sessionId !== sid) return;
 
   if (result === null) {
     deleteSave();
@@ -1205,6 +1374,43 @@ async function main() {
     await runFrom(1, 1000);
   }
 }
+
+/* ═══════════════════════════════════════
+   CHEAT MENU — 7 click sul titolo
+═══════════════════════════════════════ */
+(function() {
+  const hdrLeft   = document.getElementById('hdr-left');
+  const overlay   = document.getElementById('cheat-overlay');
+  const closeBtn  = document.getElementById('cheat-close');
+  const cheatBtns = document.querySelectorAll('.cheat-btn');
+  let clickCount = 0, clickTimer = null;
+
+  hdrLeft.style.cursor    = 'default';
+  hdrLeft.style.userSelect = 'none';
+
+  hdrLeft.addEventListener('click', () => {
+    clickCount++;
+    clearTimeout(clickTimer);
+    if (clickCount >= 7) {
+      clickCount = 0;
+      overlay.classList.add('active');
+    } else {
+      clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+    }
+  });
+
+  closeBtn.addEventListener('click', () => overlay.classList.remove('active'));
+
+  cheatBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const atto = parseInt(btn.dataset.atto);
+      overlay.classList.remove('active');
+      clearOut();
+      deleteSave();
+      runFrom(atto, 1000);
+    });
+  });
+})();
 
 main();
 </script>
